@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#查找分支并切换过去
+function findAndCheckout(){
+    count=`git branch -a | grep $1 | awk '{sub(/( )*(\*)*( )*(remotes\/origin\/)*/,"",$0);print}' | sort | uniq | awk 'END{print NR}'`
+    
+    if (("$count" == "0")); then
+        echo -e "\033[1;31m 没找到分支，按回车拉取远程分支，按Ctrl+C退出 \033[0m"
+        read input
+        git remote update -p
+        findAndCheckout $1
+    elif (("$count" == "1")); then
+        branch=`git branch -a | grep $1 | head -n 1`
+        branch=${branch/remotes\/origin\//}
+        branch=${branch/\*/}
+        git checkout $branch
+        echo -e "\033[1;32m 命令执行结束，请先确认分支是否正确，再开始写代码。\033[0m"
+    else
+        echo "共找到 $count 个分支，最多显示前10个。"
+        curBranch=`git symbolic-ref --short -q HEAD`
+        git branch -a | grep $1 | awk '{sub(/( )*(\*)*( )*(remotes\/origin\/)*/,"",$0);print}' | sort | uniq | head -n 10 | awk 'BEGIN{printf"序号\t分支\n------------------------------------------------------------\n"}{if("'$curBranch'"==$1) printf "\033[1;31m%d\t%s\033[0m \033[1;32m（当前分支）\033[0m\n",NR,$1;else printf "%d\t%s\n",NR,$1;} END{ printf"------------------------------------------------------------\n"}'
+        echo -e "\033[1;36m 请输入序号进行切换：\033[0m"
+        read input
+        #还需要判断是否为数字以及是否符合小于count 小于11 大于0
+        branch=`git branch -a | grep $1 | awk '{sub(/( )*(\*)*( )*(remotes\/origin\/)*/,"",$0);print}' | sort | uniq | head -n $input | tail -n 1`
+        echo -e "\033[1;36m 切换到：\033[0m \033[1;31m $branch \033[0m"
+        git checkout $branch
+        echo -e "\033[1;32m 命令执行结束，请先确认分支是否正确，再开始写代码。\033[0m"
+    fi
+}
+
+
+#程序从这里开始执行
+if [ $# != 1 ]; then
+    echo -e "\033[1;36m┌---------------------------------------┐\033[0m"
+    echo  ""
+    echo  " 快速切换分支命令v2.0"
+    echo  " 作者：刘召新"
+    echo  " 用法：gchk 分支号(或者其它关键词)"
+    echo  " 例如: gchk 178850"
+    echo  " 再例如：gchk dacu"
+    echo  ""
+    echo -e "\033[1;36m└---------------------------------------┘\033[0m"
+else
+    findAndCheckout $1
+fi
